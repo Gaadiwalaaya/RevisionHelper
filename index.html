@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#202725">
+  <meta name="description" content="A calm, personal flashcard revision app.">
+  <title>Recall</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #202725;
+      --panel: #303934;
+      --panel-soft: #39443e;
+      --sage: #a8bca5;
+      --sage-light: #d5ded0;
+      --text: #e8eae2;
+      --muted: #aab3a8;
+      --line: rgba(213, 222, 208, .13);
+      --terracotta: #c58f79;
+      --danger: #d28d83;
+      --shadow: 0 18px 48px rgba(0, 0, 0, .2);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% -15%, rgba(168, 188, 165, .1), transparent 38%), var(--bg);
+      color: var(--text);
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--sage);
+      outline-offset: 3px;
+    }
+    .app { width: min(100%, 760px); min-height: 100vh; margin: 0 auto; padding: 22px 18px 112px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 750; letter-spacing: -.6px; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: var(--sage); color: var(--bg); font-weight: 900; }
+    .icon-button { border: 1px solid var(--line); color: var(--text); background: var(--panel); width: 40px; height: 40px; border-radius: 14px; }
+    .eyebrow { color: var(--sage); text-transform: uppercase; letter-spacing: 1.7px; font-size: 10px; font-weight: 800; }
+    h1 { margin: 8px 0 7px; font-size: clamp(27px, 7vw, 36px); letter-spacing: -1.3px; line-height: 1.08; }
+    h2 { margin: 0; font-size: 20px; letter-spacing: -.5px; }
+    h3 { margin: 0; font-size: 15px; }
+    p { color: var(--muted); line-height: 1.55; }
+    .hero { margin-bottom: 24px; }
+    .hero p { margin: 0; font-size: 14px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0 26px; }
+    .stat { padding: 15px 13px; border: 1px solid var(--line); border-radius: 18px; background: rgba(48, 57, 52, .8); }
+    .stat strong { display: block; font-size: 23px; letter-spacing: -.7px; }
+    .stat span { color: var(--muted); font-size: 11px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 24px 0 13px; }
+    .text-button { border: 0; background: none; color: var(--sage); font-weight: 700; padding: 7px 0; }
+    .primary, .secondary, .danger-button {
+      border: 0; border-radius: 15px; padding: 13px 17px; font-weight: 750; transition: transform .18s, background .18s;
+    }
+    .primary { background: var(--sage); color: #202725; }
+    .primary:hover { background: var(--sage-light); transform: translateY(-1px); }
+    .secondary { background: var(--panel-soft); color: var(--text); border: 1px solid var(--line); }
+    .danger-button { background: rgba(210, 141, 131, .13); color: var(--danger); border: 1px solid rgba(210, 141, 131, .22); }
+    .wide { width: 100%; }
+    .deck-list { display: grid; gap: 10px; }
+    .deck {
+      display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+      padding: 16px; border: 1px solid var(--line); border-radius: 18px;
+      color: var(--text); background: var(--panel); transition: transform .18s, border-color .18s;
+    }
+    .deck:hover { transform: translateY(-2px); border-color: rgba(168, 188, 165, .4); }
+    .deck-icon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 14px; background: rgba(168, 188, 165, .13); color: var(--sage); font-size: 19px; }
+    .deck-copy { flex: 1; min-width: 0; }
+    .deck-copy strong { display: block; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .deck-copy span { color: var(--muted); font-size: 12px; }
+    .arrow { color: var(--muted); font-size: 20px; }
+    .empty { padding: 28px 18px; text-align: center; border: 1px dashed var(--line); border-radius: 18px; }
+    .empty p { margin: 7px 0 15px; font-size: 13px; }
+    .bottom-nav {
+      position: fixed; z-index: 5; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: min(100%, 760px); display: grid; grid-template-columns: repeat(4, 1fr);
+      padding: 9px 12px calc(9px + env(safe-area-inset-bottom)); background: rgba(32, 39, 37, .94);
+      border-top: 1px solid var(--line); backdrop-filter: blur(18px);
+    }
+    .nav-item { border: 0; background: none; color: var(--muted); padding: 7px 3px; display: grid; justify-items: center; gap: 4px; font-size: 10px; }
+    .nav-item span:first-child { font-size: 18px; }
+    .nav-item.active { color: var(--sage-light); }
+    .page { animation: appear .25s ease both; }
+    @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .toolbar .spacer { flex: 1; }
+    .back { border: 1px solid var(--line); background: var(--panel); color: var(--text); width: 40px; height: 40px; border-radius: 14px; }
+    .field { display: grid; gap: 7px; margin: 15px 0; }
+    .field label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .field input, .field textarea, .field select {
+      width: 100%; border: 1px solid var(--line); border-radius: 13px; padding: 13px 14px;
+      background: #252e2a; color: var(--text);
+    }
+    .field textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
+    .field small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .panel { padding: 17px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); }
+    .muted { color: var(--muted); }
+    .study-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .progress-track { height: 5px; background: rgba(213, 222, 208, .12); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+    .progress-fill { height: 100%; background: var(--sage); transition: width .3s; }
+    .flashcard {
+      min-height: 330px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 26px 22px; text-align: center; border: 1px solid rgba(168, 188, 165, .2);
+      border-radius: 25px; background: linear-gradient(145deg, #35413a, #2b342f); box-shadow: var(--shadow);
+      animation: cardIn .3s ease both;
+    }
+    @keyframes cardIn { from { opacity: .5; transform: perspective(900px) rotateX(3deg) translateY(8px); } to { opacity: 1; transform: perspective(900px) rotateX(0) translateY(0); } }
+    .card-type { color: var(--sage); font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 800; margin-bottom: 20px; }
+    .question { font-size: clamp(22px, 6vw, 29px); line-height: 1.3; letter-spacing: -.7px; font-weight: 720; white-space: pre-wrap; }
+    .answer { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--sage-light); font-size: 16px; line-height: 1.6; white-space: pre-wrap; width: 100%; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 22px; }
+    .reveal-area { margin-top: 15px; }
+    .options { display: grid; gap: 9px; width: 100%; margin-top: 22px; }
+    .option { text-align: left; padding: 13px 14px; border: 1px solid var(--line); border-radius: 13px; color: var(--text); background: rgba(32, 39, 37, .55); }
+    .option.selected { border-color: var(--sage); background: rgba(168, 188, 165, .12); }
+    .option.correct { border-color: var(--sage); background: rgba(168, 188, 165, .16); }
+    .option.wrong { border-color: var(--terracotta); background: rgba(197, 143, 121, .13); }
+    .rating-wrap { margin-top: 21px; }
+    .rating-wrap p { margin: 0 0 10px; text-align: center; font-size: 12px; }
+    .ratings { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .rating { padding: 12px 3px; border-radius: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+    .rating strong { display: block; font-size: 16px; }
+    .rating span { font-size: 9px; color: var(--muted); }
+    .rating:first-child { color: var(--terracotta); }
+    .rating:last-child { color: var(--sage-light); }
+    .action-row { display: flex; gap: 9px; margin-top: 14px; }
+    .action-row > * { flex: 1; }
+    .notice { padding: 13px 14px; border-radius: 13px; background: rgba(168, 188, 165, .09); color: var(--sage-light); font-size: 12px; line-height: 1.5; }
+    .tabs { display: flex; gap: 7px; padding: 5px; background: var(--panel); border-radius: 14px; margin: 18px 0; }
+    .tab { flex: 1; border: 0; border-radius: 10px; padding: 10px 5px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .tab.active { color: var(--text); background: var(--panel-soft); }
+    .card-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .card-row:last-child { border-bottom: 0; }
+    .card-row strong { display: block; margin-bottom: 5px; font-size: 13px; }
+    .card-row span { color: var(--muted); font-size: 11px; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; align-items: end; background: rgba(0, 0, 0, .58); padding: 12px; }
+    .modal { width: min(100%, 560px); max-height: 88vh; overflow: auto; margin: 0 auto; padding: 22px; border: 1px solid var(--line); border-radius: 24px 24px 18px 18px; background: #29322e; box-shadow: var(--shadow); animation: appear .2s ease; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .close { border: 0; color: var(--muted); background: none; font-size: 23px; }
+    .hidden { display: none !important; }
+    .toast { position: fixed; z-index: 20; left: 50%; bottom: 94px; transform: translateX(-50%); background: var(--sage-light); color: #202725; padding: 11px 16px; border-radius: 12px; font-size: 12px; font-weight: 750; box-shadow: var(--shadow); }
+    .file-label { display: block; text-align: center; }
+    .small-note { font-size: 11px; line-height: 1.5; color: var(--muted); }
+    @media (min-width: 700px) {
+      .app { padding-top: 34px; }
+      .modal-backdrop { align-items: center; }
+      .modal { border-radius: 24px; }
+      .flashcard { min-height: 390px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">R</span><span>recall</span></div>
+      <button class="icon-button" id="backupButton" aria-label="Export backup">↥</button>
+    </header>
+    <div id="view"></div>
+  </main>
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item active" data-page="home"><span>⌂</span><span>Home</span></button>
+    <button class="nav-item" data-page="decks"><span>▤</span><span>Decks</span></button>
+    <button class="nav-item" data-page="import"><span>＋</span><span>Import</span></button>
+    <button class="nav-item" data-page="progress"><span>◷</span><span>Progress</span></button>
+  </nav>
+  <div id="modalRoot"></div>
+  <div id="toastRoot"></div>
+
+  <script>
+    const STORAGE_KEY = "recall_app_v1";
+    const starterData = {
+      decks: [
+        {
+          id: "starter",
+          name: "Getting started",
+          subject: "Sample deck",
+          cards: [
+            { id: "s1", type: "basic", question: "What is active recall?", answer: "A learning technique where you deliberately retrieve information from memory instead of only rereading it.", options: [], correct: 0, interval: 0, due: today(), reviews: 0, lastReviewed: null },
+            { id: "s2", type: "mcq", question: "Which part of a neuron usually receives signals?", answer: "Dendrites", options: ["Axon", "Dendrites", "Myelin sheath", "Synaptic terminal"], correct: 1, interval: 0, due: today(), reviews: 0, lastReviewed: null }
+          ]
+        }
+      ]
+    };
+
+    let data = loadData();
+    let currentPage = "home";
+    let activeDeckId = null;
+    let studyQueue = [];
+    let studyIndex = 0;
+    let revealed = false;
+    let selectedOption = null;
+    let mcqChecked = false;
+    let studyMode = "due";
+    let importPreview = null;
+
+    function today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function loadData() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && Array.isArray(saved.decks)) return saved;
+      } catch (error) {}
+      return structuredClone(starterData);
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function uid() {
+      return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    function allCards() {
+      return data.decks.flatMap(deck => deck.cards.map(card => ({ ...card, deckId: deck.id, deckName: deck.name })));
+    }
+
+    function dueCards() {
+      return allCards().filter(card => !card.due || card.due <= today());
+    }
+
+    function reviewedToday() {
+      return allCards().filter(card => card.lastReviewed === today()).length;
+    }
+
+    function setPage(page) {
+      currentPage = page;
+      document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.page === page));
+      render();
+    }
+
+    function render() {
+      const view = document.getElementById("view");
+      if (currentPage === "home") view.innerHTML = renderHome();
+      if (currentPage === "decks") view.innerHTML = renderDecks();
+      if (currentPage === "import") view.innerHTML = renderImport();
+      if (currentPage === "progress") view.innerHTML = renderProgress();
+      if (currentPage === "study") view.innerHTML = renderStudy();
+      if (currentPage === "deck") view.innerHTML = renderDeckDetail();
+      bindViewEvents();
+    }
+
+    function renderHome() {
+      const cards = allCards();
+      const due = dueCards().length;
+      const decks = data.decks.length;
+      return `
+        <section class="page">
+          <div class="hero">
+            <div class="eyebrow">Your revision space</div>
+            <h1>Make it<br>stick.</h1>
+            <p>A little recall every day goes a long way.</p>
+          </div>
+          <div class="stats">
+            <div class="stat"><strong>${due}</strong><span>Due today</span></div>
+            <div class="stat"><strong>${cards.length}</strong><span>Total cards</span></div>
+            <div class="stat"><strong>${reviewedToday()}</strong><span>Reviewed today</span></div>
+          </div>
+          <button class="primary wide" data-action="start-due">Start today's revision <span aria-hidden="true">→</span></button>
+          <div class="section-head"><h2>Your decks</h2><button class="text-button" data-page="decks">See all</button></div>
+          ${decks ? `<div class="deck-list">${data.decks.slice(0, 4).map(deckCard).join("")}</div>` : emptyDecks()}
+          <div class="section-head"><h2>Quick add</h2></div>
+          <div class="panel">
+            <h3>Have notes ready?</h3>
+            <p style="font-size:13px;margin:6px 0 13px">Paste a prepared card set or import a JSON file. No AI connection or subscription needed.</p>
+            <button class="secondary wide" data-page="import">Open importer</button>
+          </div>
+        </section>`;
+    }
+
+    function deckCard(deck) {
+      const due = deck.cards.filter(card => !card.due || card.due <= today()).length;
+      return `<button class="deck" data-deck="${escapeHtml(deck.id)}">
+        <span class="deck-icon">▤</span>
+        <span class="deck-copy"><strong>${escapeHtml(deck.name)}</strong><span>${deck.cards.length} cards · ${due} due</span></span>
+        <span class="arrow">›</span>
+      </button>`;
+    }
+
+    function emptyDecks() {
+      return `<div class="empty"><h3>No decks yet</h3><p>Create a deck or import your first set of cards.</p><button class="primary" data-action="new-deck">Create a deck</button></div>`;
+    }
+
+    function renderDecks() {
+      return `<section class="page">
+        <div class="eyebrow">Your library</div><h1>Decks</h1><p>Keep each subject or topic in its own deck.</p>
+        <div class="action-row"><button class="primary" data-action="new-deck">＋ New deck</button><button class="secondary" data-page="import">Import cards</button></div>
+        <div class="section-head"><h2>All decks</h2><span class="muted">${data.decks.length}</span></div>
+        ${data.decks.length ? `<div class="deck-list">${data.decks.map(deckCard).join("")}</div>` : emptyDecks()}
+      </section>`;
+    }
+
+    function renderImport() {
+      return `<section class="page">
+        <div class="eyebrow">Bring your notes in</div><h1>Import cards</h1>
+        <p>Use an AI tool separately to turn your notes into the format below, then paste the result here. Recall works offline after the page has loaded.</p>
+        <div class="panel">
+          <h3>1. Choose a deck</h3>
+          <div class="field"><label for="importDeck">Add to</label><select id="importDeck">${data.decks.map(deck => `<option value="${escapeHtml(deck.id)}">${escapeHtml(deck.name)}</option>`).join("")}<option value="__new__">＋ Create a new deck</option></select></div>
+          <div class="field"><label for="newDeckName">New deck name, if needed</label><input id="newDeckName" placeholder="e.g. CDS Polity"></div>
+          <h3 style="margin-top:22px">2. Paste your JSON</h3>
+          <div class="field"><label for="jsonInput">Card data</label><textarea id="jsonInput" placeholder='{"deck":"Indian Polity","cards":[{"type":"basic","question":"What is...","answer":"..."}]}'></textarea></div>
+          <div class="action-row"><button class="secondary" data-action="sample-json">Load sample</button><button class="primary" data-action="preview-import">Preview cards</button></div>
+          <div id="importFeedback" style="margin-top:14px"></div>
+        </div>
+        <div class="section-head"><h2>AI prompt</h2><button class="text-button" data-action="copy-prompt">Copy prompt</button></div>
+        <div class="panel"><p class="small-note" style="margin:0">Paste this prompt into your preferred AI tool along with your notes or PDF text. Ask it to return only valid JSON. For PDFs, extract or copy the text first.</p></div>
+        <div class="section-head"><h2>Supported card types</h2></div>
+        <div class="panel"><div class="card-row"><strong>Basic</strong><span>Question and answer. Think first, then reveal.</span></div><div class="card-row"><strong>MCQ</strong><span>Question, four options and the correct answer.</span></div></div>
+      </section>`;
+    }
+
+    function renderProgress() {
+      const cards = allCards();
+      const reviewed = cards.filter(card => card.reviews > 0).length;
+      const due = dueCards().length;
+      const mastered = cards.filter(card => card.interval >= 14).length;
+      const recent = cards.filter(card => card.lastReviewed === today()).slice(0, 8);
+      return `<section class="page">
+        <div class="eyebrow">Keep showing up</div><h1>Your progress</h1><p>Small, consistent reviews build long-term recall.</p>
+        <div class="stats">
+          <div class="stat"><strong>${reviewed}</strong><span>Cards reviewed</span></div>
+          <div class="stat"><strong>${mastered}</strong><span>Well established</span></div>
+          <div class="stat"><strong>${due}</strong><span>Due now</span></div>
+        </div>
+        <div class="panel"><h3>Today's activity</h3><p style="font-size:13px;margin-bottom:0">${reviewedToday()} card${reviewedToday() === 1 ? "" : "s"} reviewed today across your decks.</p></div>
+        <div class="section-head"><h2>Reviewed today</h2></div>
+        ${recent.length ? `<div class="panel">${recent.map(card => `<div class="card-row"><strong>${escapeHtml(card.question)}</strong><span>${escapeHtml(card.deckName)} · ${card.interval} day interval</span></div>`).join("")}</div>` : `<div class="empty"><h3>Nothing reviewed yet</h3><p>Your completed reviews will show up here.</p></div>`}
+        <div class="section-head"><h2>Backup</h2></div>
+        <div class="panel"><p style="font-size:13px;margin-top:0">Your cards are stored in this browser on this device. Export a backup regularly so you can move them or restore them later.</p><div class="action-row"><button class="primary" data-action="export">Export backup</button><label class="secondary file-label">Import backup<input id="backupFile" type="file" accept=".json,application/json" hidden></label></div></div>
+      </section>`;
+    }
+
+    function renderDeckDetail() {
+      const deck = data.decks.find(item => item.id === activeDeckId);
+      if (!deck) return renderDecks();
+      return `<section class="page">
+        <div class="toolbar"><button class="back" data-action="back-decks">‹</button><div class="spacer"></div><button class="icon-button" data-action="edit-deck" aria-label="Edit deck">···</button></div>
+        <div class="eyebrow">${escapeHtml(deck.subject || "Deck")}</div><h1>${escapeHtml(deck.name)}</h1><p>${deck.cards.length} cards · ${deck.cards.filter(card => !card.due || card.due <= today()).length} due today</p>
+        <div class="action-row"><button class="primary" data-action="study-deck">Study deck</button><button class="secondary" data-action="add-card">＋ Add card</button></div>
+        <div class="section-head"><h2>Cards</h2><span class="muted">${deck.cards.length}</span></div>
+        <div class="panel">${deck.cards.length ? deck.cards.map(card => `<div class="card-row"><strong>${escapeHtml(card.question)}</strong><span>${card.type === "mcq" ? "Multiple choice" : "Flashcard"} · ${card.reviews} reviews</span></div>`).join("") : `<p>No cards in this deck yet.</p>`}</div>
+        <div class="section-head"><h2>Deck settings</h2></div><button class="danger-button wide" data-action="delete-deck">Delete this deck</button>
+      </section>`;
+    }
+
+    function renderStudy() {
+      const card = studyQueue[studyIndex];
+      if (!card) return `<section class="page"><div class="eyebrow">Session complete</div><h1>Good work.</h1><p>You have reached the end of this session.</p><div class="panel"><h3>Session finished</h3><p style="font-size:13px">${studyQueue.length} card${studyQueue.length === 1 ? "" : "s"} in this session.</p><button class="primary wide" data-action="finish-study">Back to home</button></div></section>`;
+      const deck = data.decks.find(item => item.id === card.deckId);
+      const current = deck?.cards.find(item => item.id === card.id) || card;
+      const progress = Math.round(((studyIndex + 1) / studyQueue.length) * 100);
+      const options = current.type === "mcq" ? `<div class="options">${current.options.map((option, index) => {
+        let state = selectedOption === index ? "selected" : "";
+        if (mcqChecked && index === current.correct) state = "correct";
+        else if (mcqChecked && selectedOption === index) state = "wrong";
+        return `<button class="option ${state}" data-option="${index}" ${mcqChecked ? "disabled" : ""}>${String.fromCharCode(65 + index)}. ${escapeHtml(option)}</button>`;
+      }).join("")}</div>` : "";
+      const answer = current.type === "mcq" ? current.options[current.correct] : current.answer;
+      return `<section class="page">
+        <div class="study-top"><button class="back" data-action="exit-study">×</button><span class="muted">${studyIndex + 1} / ${studyQueue.length}</span><span class="eyebrow">${studyMode === "due" ? "Due review" : "Deck study"}</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <div class="flashcard" key="${escapeHtml(current.id)}">
+          <div class="card-type">${current.type === "mcq" ? "Multiple choice" : "Flashcard"}</div>
+          <div class="question">${escapeHtml(current.question)}</div>
+          ${options}
+          ${revealed ? `<div class="answer">${escapeHtml(answer)}</div>` : `<div class="hint">${current.type === "mcq" ? "Choose an option, then check your answer." : "Try to recall the answer before revealing it."}</div>`}
+        </div>
+        ${current.type === "mcq" && !mcqChecked ? `<div class="reveal-area"><button class="primary wide" data-action="check-mcq" ${selectedOption === null ? "disabled" : ""}>Check answer</button></div>` : ""}
+        ${current.type === "basic" && !revealed ? `<div class="reveal-area"><button class="primary wide" data-action="reveal">Reveal answer</button></div>` : ""}
+        ${revealed ? `<div class="rating-wrap"><p>How well did you remember?</p><div class="ratings">
+          <button class="rating" data-rate="1"><strong>1</strong><span>Again</span></button>
+          <button class="rating" data-rate="2"><strong>2</strong><span>Hard</span></button>
+          <button class="rating" data-rate="3"><strong>3</strong><span>Okay</span></button>
+          <button class="rating" data-rate="4"><strong>4</strong><span>Good</span></button>
+          <button class="rating" data-rate="5"><strong>5</strong><span>Easy</span></button>
+        </div></div>` : ""}
+      </section>`;
+    }
+
+    function bindViewEvents() {
+      document.querySelectorAll("[data-page]").forEach(button => button.addEventListener("click", () => setPage(button.dataset.page)));
+      document.querySelectorAll("[data-deck]").forEach(button => button.addEventListener("click", () => {
+        activeDeckId = button.dataset.deck;
+        currentPage = "deck";
+        render();
+      }));
+      document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => handleAction(button.dataset.action)));
+      document.querySelectorAll("[data-option]").forEach(button => button.addEventListener("click", () => {
+        if (mcqChecked) return;
+        selectedOption = Number(button.dataset.option);
+        render();
+      }));
+      document.querySelectorAll("[data-rate]").forEach(button => button.addEventListener("click", () => rateCard(Number(button.dataset.rate))));
+      const backupFile = document.getElementById("backupFile");
+      if (backupFile) backupFile.addEventListener("change", importBackup);
+    }
+
+    function handleAction(action) {
+      if (action === "new-deck") openDeckModal();
+      if (action === "start-due") startStudy(dueCards(), "due");
+      if (action === "study-deck") {
+        const deck = data.decks.find(item => item.id === activeDeckId);
+        startStudy(deck ? deck.cards.map(card => ({ ...card, deckId: deck.id })) : [], "deck");
+      }
+      if (action === "back-decks") setPage("decks");
+      if (action === "edit-deck") openDeckModal(activeDeckId);
+      if (action === "delete-deck") deleteDeck();
+      if (action === "add-card") openCardModal(activeDeckId);
+      if (action === "reveal") { revealed = true; render(); }
+      if (action === "check-mcq") { mcqChecked = true; revealed = true; render(); }
+      if (action === "exit-study") { currentPage = activeDeckId ? "deck" : "home"; revealed = false; render(); }
+      if (action === "finish-study") { currentPage = "home"; activeDeckId = null; render(); }
+      if (action === "sample-json") document.getElementById("jsonInput").value = JSON.stringify(sampleImport(), null, 2);
+      if (action === "preview-import") previewImport();
+      if (action === "copy-prompt") copyPrompt();
+      if (action === "export") exportBackup();
+    }
+
+    function startStudy(cards, mode) {
+      if (!cards.length) {
+        toast(mode === "due" ? "You're all caught up." : "This deck has no cards yet.");
+        return;
+      }
+      studyQueue = cards.map(card => ({ ...card }));
+      studyIndex = 0;
+      studyMode = mode;
+      revealed = false;
+      selectedOption = null;
+      mcqChecked = false;
+      currentPage = "study";
+      render();
+    }
+
+    function rateCard(rating) {
+      const queued = studyQueue[studyIndex];
+      const deck = data.decks.find(item => item.id === queued.deckId);
+      const card = deck?.cards.find(item => item.id === queued.id);
+      if (card) {
+        const intervals = { 1: 0, 2: 1, 3: 3, 4: 7, 5: 14 };
+        const nextInterval = rating === 1 ? 0 : rating === 2 ? Math.max(1, Math.round((card.interval || 0) * 1.2)) : rating === 3 ? Math.max(3, Math.round((card.interval || 0) * 1.8)) : rating === 4 ? Math.max(7, Math.round((card.interval || 0) * 2.2)) : Math.max(14, Math.round((card.interval || 0) * 2.7));
+        card.interval = rating === 1 ? 0 : nextInterval;
+        const due = new Date();
+        due.setDate(due.getDate() + (rating === 1 ? 0 : nextInterval));
+        card.due = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`;
+        card.reviews = (card.reviews || 0) + 1;
+        card.lastReviewed = today();
+        saveData();
+      }
+      studyIndex += 1;
+      revealed = false;
+      selectedOption = null;
+      mcqChecked = false;
+      render();
+    }
+
+    function openDeckModal(deckId = null) {
+      const deck = data.decks.find(item => item.id === deckId);
+      showModal(`<div class="modal-head"><h2>${deck ? "Edit deck" : "New deck"}</h2><button class="close" data-close>×</button></div>
+        <div class="field"><label for="deckName">Deck name</label><input id="deckName" value="${escapeHtml(deck?.name || "")}" placeholder="e.g. CDS Geography"></div>
+        <div class="field"><label for="deckSubject">Subject or category</label><input id="deckSubject" value="${escapeHtml(deck?.subject || "")}" placeholder="e.g. Geography"></div>
+        <button class="primary wide" id="saveDeck">${deck ? "Save changes" : "Create deck"}</button>`);
+      document.getElementById("saveDeck").addEventListener("click", () => {
+        const name = document.getElementById("deckName").value.trim();
+        const subject = document.getElementById("deckSubject").value.trim();
+        if (!name) return toast("Give your deck a name.");
+        if (deck) { deck.name = name; deck.subject = subject; }
+        else data.decks.push({ id: uid(), name, subject, cards: [] });
+        saveData();
+        closeModal();
+        if (!deck) setPage("decks");
+        else render();
+      });
+    }
+
+    function openCardModal(deckId) {
+      showModal(`<div class="modal-head"><h2>Add a card</h2><button class="close" data-close>×</button></div>
+        <div class="field"><label for="cardType">Card type</label><select id="cardType"><option value="basic">Flashcard</option><option value="mcq">Multiple choice</option></select></div>
+        <div class="field"><label for="cardQuestion">Question</label><textarea id="cardQuestion" placeholder="Write a clear question"></textarea></div>
+        <div id="basicFields"><div class="field"><label for="cardAnswer">Answer</label><textarea id="cardAnswer" placeholder="Write the answer"></textarea></div></div>
+        <div id="mcqFields" class="hidden">
+          <div class="field"><label>Options</label>${[0,1,2,3].map(i => `<input id="option${i}" placeholder="Option ${i + 1}" style="width:100%;margin-bottom:8px;padding:12px;border-radius:12px;background:#252e2a;color:var(--text);border:1px solid var(--line)">`).join("")}</div>
+          <div class="field"><label for="correctOption">Correct option</label><select id="correctOption"><option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option></select></div>
+        </div>
+        <button class="primary wide" id="saveCard">Add card</button>`);
+      document.getElementById("cardType").addEventListener("change", event => {
+        document.getElementById("basicFields").classList.toggle("hidden", event.target.value !== "basic");
+        document.getElementById("mcqFields").classList.toggle("hidden", event.target.value !== "mcq");
+      });
+      document.getElementById("saveCard").addEventListener("click", () => {
+        const type = document.getElementById("cardType").value;
+        const question = document.getElementById("cardQuestion").value.trim();
+        if (!question) return toast("Add a question first.");
+        let card = { id: uid(), type, question, answer: "", options: [], correct: 0, interval: 0, due: today(), reviews: 0, lastReviewed: null };
+        if (type === "basic") {
+          card.answer = document.getElementById("cardAnswer").value.trim();
+          if (!card.answer) return toast("Add an answer first.");
+        } else {
+          card.options = [0,1,2,3].map(i => document.getElementById(`option${i}`).value.trim());
+          if (card.options.some(option => !option)) return toast("Fill all four options.");
+          card.correct = Number(document.getElementById("correctOption").value);
+        }
+        const deck = data.decks.find(item => item.id === deckId);
+        if (deck) deck.cards.push(card);
+        saveData();
+        closeModal();
+        render();
+        toast("Card added.");
+      });
+    }
+
+    function deleteDeck() {
+      const deck = data.decks.find(item => item.id === activeDeckId);
+      if (!deck) return;
+      showModal(`<div class="modal-head"><h2>Delete deck?</h2><button class="close" data-close>×</button></div><p>This will permanently delete <strong>${escapeHtml(deck.name)}</strong> and its ${deck.cards.length} cards from this browser.</p><button class="danger-button wide" id="confirmDelete">Delete deck</button>`);
+      document.getElementById("confirmDelete").addEventListener("click", () => {
+        data.decks = data.decks.filter(item => item.id !== activeDeckId);
+        activeDeckId = null;
+        saveData();
+        closeModal();
+        setPage("decks");
+      });
+    }
+
+    function sampleImport() {
+      return {
+        deck: "CDS Geography",
+        cards: [
+          { type: "basic", question: "What is the standard lapse rate in the troposphere?", answer: "About 6.5°C per kilometre on average." },
+          { type: "mcq", question: "Which layer contains most weather phenomena?", options: ["Stratosphere", "Troposphere", "Mesosphere", "Thermosphere"], answer: "Troposphere" }
+        ]
+      };
+    }
+
+    function validateImport(raw) {
+      const parsed = JSON.parse(raw);
+      const cards = Array.isArray(parsed) ? parsed : parsed.cards;
+      if (!Array.isArray(cards) || !cards.length) throw new Error("The JSON needs a non-empty cards array.");
+      const cleaned = cards.map((item, index) => {
+        if (!item || typeof item.question !== "string" || !item.question.trim()) throw new Error(`Card ${index + 1} needs a question.`);
+        const type = item.type === "mcq" || Array.isArray(item.options) ? "mcq" : "basic";
+        const card = { id: uid(), type, question: item.question.trim(), answer: "", options: [], correct: 0, interval: 0, due: today(), reviews: 0, lastReviewed: null };
+        if (type === "basic") {
+          if (typeof item.answer !== "string" || !item.answer.trim()) throw new Error(`Card ${index + 1} needs an answer.`);
+          card.answer = item.answer.trim();
+        } else {
+          if (!Array.isArray(item.options) || item.options.length < 2) throw new Error(`Card ${index + 1} needs at least two options.`);
+          card.options = item.options.map(option => String(option).trim());
+          if (card.options.some(option => !option)) throw new Error(`Card ${index + 1} has an empty option.`);
+          let correct = item.correct ?? item.answer;
+          if (typeof correct === "string") {
+            const found = card.options.findIndex(option => option.toLowerCase() === correct.trim().toLowerCase());
+            if (found < 0) throw new Error(`Card ${index + 1}: answer must match one of its options.`);
+            card.correct = found;
+          } else {
+            card.correct = Number(correct);
+          }
+          if (!Number.isInteger(card.correct) || card.correct < 0 || card.correct >= card.options.length) throw new Error(`Card ${index + 1} has an invalid correct option.`);
+        }
+        return card;
+      });
+      return { name: typeof parsed.deck === "string" ? parsed.deck : "", cards: cleaned };
+    }
+
+    function previewImport() {
+      const raw = document.getElementById("jsonInput").value.trim();
+      const feedback = document.getElementById("importFeedback");
+      try {
+        if (!raw) throw new Error("Paste your JSON first.");
+        importPreview = validateImport(raw);
+        feedback.innerHTML = `<div class="notice">${importPreview.cards.length} valid cards found. ${importPreview.cards.filter(card => card.type === "mcq").length} MCQs and ${importPreview.cards.filter(card => card.type === "basic").length} flashcards.<div style="margin-top:11px"><button class="primary wide" id="confirmImport">Add these cards</button></div></div>`;
+        document.getElementById("confirmImport").addEventListener("click", confirmImport);
+      } catch (error) {
+        importPreview = null;
+        feedback.innerHTML = `<div class="notice" style="background:rgba(197,143,121,.12);color:#e2b4a6">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function confirmImport() {
+      if (!importPreview) return;
+      const select = document.getElementById("importDeck");
+      const newName = document.getElementById("newDeckName").value.trim();
+      let deck = null;
+      if (select.value === "__new__") {
+        if (!newName) return toast("Enter a name for the new deck.");
+        deck = { id: uid(), name: newName, subject: "", cards: [] };
+        data.decks.push(deck);
+      } else {
+        deck = data.decks.find(item => item.id === select.value);
+      }
+      if (!deck) return toast("Choose a deck.");
+      deck.cards.push(...importPreview.cards);
+      saveData();
+      document.getElementById("jsonInput").value = "";
+      document.getElementById("importFeedback").innerHTML = `<div class="notice">Added ${importPreview.cards.length} cards to ${escapeHtml(deck.name)}.</div>`;
+      importPreview = null;
+      toast("Cards imported.");
+    }
+
+    const aiPrompt = `Turn the notes I provide into useful revision flashcards. Return only valid JSON with this exact structure:
+{
+  "deck": "Short deck name",
+  "cards": [
+    {
+      "type": "basic",
+      "question": "A clear question",
+      "answer": "A concise but complete answer"
+    },
+    {
+      "type": "mcq",
+      "question": "A question with one unambiguous correct answer",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": "The exact text of the correct option"
+    }
+  ]
+}
+Rules:
+- Use only information supported by my notes.
+- Cover important facts, definitions, distinctions, dates, processes and cause-effect links.
+- Keep each card focused on one idea.
+- Avoid duplicate cards and vague questions.
+- Make MCQ distractors plausible but clearly incorrect.
+- Include a balanced mix of basic cards and MCQs.
+- Do not add explanations outside the JSON.
+- Ensure the JSON is valid and all MCQ answers exactly match one option.`;
+
+    async function copyPrompt() {
+      try {
+        await navigator.clipboard.writeText(aiPrompt);
+        toast("Prompt copied.");
+      } catch (error) {
+        showModal(`<div class="modal-head"><h2>Copy the prompt</h2><button class="close" data-close>×</button></div><div class="field"><textarea id="promptText">${escapeHtml(aiPrompt)}</textarea></div>`);
+        document.getElementById("promptText").focus();
+        document.getElementById("promptText").select();
+      }
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `recall-backup-${today()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast("Backup exported.");
+    }
+
+    function importBackup(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!imported || !Array.isArray(imported.decks)) throw new Error("This file does not look like a Recall backup.");
+          const validDecks = imported.decks.map(deck => {
+            if (!deck || typeof deck.name !== "string" || !Array.isArray(deck.cards)) throw new Error("A deck in this backup is invalid.");
+            return {
+              id: typeof deck.id === "string" ? deck.id : uid(),
+              name: deck.name,
+              subject: deck.subject || "",
+              cards: deck.cards.map(card => {
+                if (!card.question || (card.type !== "mcq" && typeof card.answer !== "string")) throw new Error("A card in this backup is invalid.");
+                return { id: card.id || uid(), type: card.type === "mcq" ? "mcq" : "basic", question: card.question, answer: card.answer || "", options: card.options || [], correct: card.correct || 0, interval: card.interval || 0, due: card.due || today(), reviews: card.reviews || 0, lastReviewed: card.lastReviewed || null };
+              })
+            };
+          });
+          data = { decks: validDecks };
+          saveData();
+          setPage("home");
+          toast("Backup restored.");
+        } catch (error) {
+          toast(error.message || "Could not read this backup.");
+        }
+        event.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function showModal(content) {
+      const root = document.getElementById("modalRoot");
+      root.innerHTML = `<div class="modal-backdrop"><div class="modal">${content}</div></div>`;
+      root.querySelector("[data-close]")?.addEventListener("click", closeModal);
+      root.querySelector(".modal-backdrop").addEventListener("click", event => {
+        if (event.target.classList.contains("modal-backdrop")) closeModal();
+      });
+    }
+
+    function closeModal() {
+      document.getElementById("modalRoot").innerHTML = "";
+    }
+
+    let toastTimer;
+    function toast(message) {
+      const root = document.getElementById("toastRoot");
+      root.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => root.innerHTML = "", 2300);
+    }
+
+    document.querySelectorAll(".nav-item").forEach(button => button.addEventListener("click", () => setPage(button.dataset.page)));
+    document.getElementById("backupButton").addEventListener("click", exportBackup);
+    render();
+  </script>
+</body>
+</html>
